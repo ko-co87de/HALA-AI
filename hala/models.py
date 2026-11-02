@@ -21,6 +21,23 @@ def _which(name: str) -> Optional[str]:
     return shutil.which(name)
 
 
+def _strip_llama_cli_metadata(text: str) -> str:
+    """Remove llama-cli interactive prompt markers and status lines.
+
+    llama-cli appends lines like '[ Prompt: 7.7 t/s | Generation: 2.3 t/s ]'
+    and a trailing '> ' prompt. These break structured output parsing.
+    """
+    import re
+    # Remove status metadata lines
+    text = re.sub(r'\n?\s*\[ Prompt:.*?\]\s*$', '', text, flags=re.DOTALL)
+    text = re.sub(r'\n?\s*\[.*?t/s.*?\]\s*$', '', text, flags=re.DOTALL)
+    # Remove trailing interactive prompt markers
+    for sep in ("\n> ", "\n\n> ", "> ", "\n>"):
+        if sep in text:
+            text = text.split(sep, 1)[0]
+    return text.strip()
+
+
 def _resolve_path(path: str) -> str:
     """Resolve a model path. Tries absolute, CWD-relative, package-relative,
     and HALA_DATA env var. Returns the first existing path."""
@@ -129,10 +146,8 @@ class LlamaCppAdapter:
             marker = prompt.strip().split("\n")[-1]
             if marker in output:
                 output = output.split(marker, 1)[1].strip()
-            # Strip trailing interactive prompt
-            for sep in ("\n> ", "\n\n> "):
-                if sep in output:
-                    output = output.split(sep, 1)[0].strip()
+            # Strip llama-cli interactive prompt and status metadata
+            output = _strip_llama_cli_metadata(output)
             return output
         finally:
             os.unlink(prompt_path)

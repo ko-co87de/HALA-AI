@@ -1,6 +1,7 @@
 """Central coordinator: task decomposition, delegation, verification."""
 from __future__ import annotations
 
+import json
 import re
 import time
 from typing import Any, Optional
@@ -11,6 +12,16 @@ from hala.tools import execute_tool, list_tools
 from hala.types import (
     AgentResult, Message, MessageRole, Task, TaskStatus, ToolCall,
 )
+
+
+def _strip_raw_metadata(text: str) -> str:
+    """Remove trailing status/prompt metadata from model output."""
+    text = re.sub(r'\n?\s*\[ Prompt:.*?\]\s*$', '', text, flags=re.DOTALL)
+    text = re.sub(r'\n?\s*\[.*?t/s.*?\]\s*$', '', text, flags=re.DOTALL)
+    for sep in ("\n> ", "\n\n> ", "> ", "\n>"):
+        if sep in text:
+            text = text.split(sep, 1)[0]
+    return text.strip()
 
 
 class Coordinator:
@@ -107,17 +118,20 @@ class Coordinator:
         system_msg = Message(
             role=MessageRole.SYSTEM,
             content=(
-                "You are HALA AI coordinator. You have access to these tools: "
+                "You are HALA AI coordinator. Available tools: "
                 + ", ".join(list_tools()) +
-                "\n\nDecide the next step. Respond with EXACTLY one of:\n"
-                "1. TOOL: tool_name | args: {json}\n"
-                "2. ANSWER: your final answer\n\n"
+                "\n\nRespond with EXACTLY ONE of these formats, nothing else:\n"
+                "TOOL: tool_name | args: {\"key\": \"value\"}\n"
+                "ANSWER: your final answer\n\n"
                 "Rules:\n"
-                "- Prefer tools over guessing.\n"
+                "- Use run_python for calculations and code.\n"
+                "- Use run_terminal for shell commands (echo, ls, cat, etc).\n"
+                "- Use read_file/write_file/list_files for files.\n"
+                "- Use grep_files to search file contents.\n"
                 "- If you have enough info, give ANSWER.\n"
                 "- Keep answers concise and accurate.\n"
-                "- For math: use run_python.\n"
-                "- For file ops: use read_file/write_file/list_files.\n"
+                "- args must be valid JSON with double quotes.\n"
+                "- Do NOT include any text after your response.\n"
             ),
         )
         messages = [system_msg] + self.conversation.to_list()
@@ -129,6 +143,8 @@ class Coordinator:
             return {"done": True, "answer": "[No model available for inference]"}
 
         raw = raw.strip()
+        # Strip any trailing metadata before parsing
+        raw = _strip_raw_metadata(raw)
         self.conversation.add(Message(role=MessageRole.ASSISTANT, content=raw))
 
         if raw.upper().startswith("ANSWER:"):
@@ -137,12 +153,15 @@ class Coordinator:
         if raw.upper().startswith("TOOL:"):
             try:
                 tool_part = raw.split(":", 1)[1].strip()
-                tool_name = tool_part.split("|")[0].strip()
-                args_str = ""
+                # Split on first | only
                 if "|" in tool_part:
-                    args_str = tool_part.split("|", 1)[1].strip()
-                    if args_str.lower().startswith("args:"):
-                        args_str = args_str.split(":", 1)[1].strip()
+                    tool_name, args_part = tool_part.split("|", 1)
+                else:
+                    tool_name, args_part = tool_part, ""
+                tool_name = tool_name.strip()
+                args_str = args_part.strip()
+                if args_str.lower().startswith("args:"):
+                    args_str = args_str.split(":", 1)[1].strip()
                 import json
                 arguments = json.loads(args_str) if args_str else {}
                 return {
@@ -151,8 +170,8 @@ class Coordinator:
                     "arguments": arguments,
                     "thought": raw,
                 }
-            except Exception:
-                return {"done": True, "answer": f"Could not parse tool call: {raw}"}
+            except Exception as exc:
+                return {"done": True, "answer": f"Could not parse tool call: {raw} (error: {exc})"}
 
         return {"done": True, "answer": raw}
 
