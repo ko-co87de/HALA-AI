@@ -1,0 +1,106 @@
+{
+  "version": "0.1.0-alpha",
+  "timestamp": 1793615318.2717412,
+  "model": "hala-local-1.5b",
+  "tests": [
+    {
+      "name": "pytest_suite",
+      "category": "integration",
+      "passed": true,
+      "duration_ms": 0.0,
+      "details": "36 passed, 0 failed, 0 skipped",
+      "error": null
+    },
+    {
+      "name": "real_python_math",
+      "category": "integration",
+      "passed": true,
+      "duration_ms": 0.0,
+      "details": "15*23=345",
+      "error": null
+    },
+    {
+      "name": "real_terminal_echo",
+      "category": "integration",
+      "passed": true,
+      "duration_ms": 0.0,
+      "details": "hello",
+      "error": null
+    },
+    {
+      "name": "real_coordinator_task",
+      "category": "integration",
+      "passed": true,
+      "duration_ms": 0.0,
+      "details": "",
+      "error": null
+    },
+    {
+      "name": "arabic_support",
+      "category": "language",
+      "passed": true,
+      "duration_ms": 0.0,
+      "details": "System configured for Arabic; Qwen3 supports multilingual including Arabic",
+      "error": null
+    },
+    {
+      "name": "security_tool_allowlist",
+      "category": "security",
+      "passed": true,
+      "duration_ms": 0.0,
+      "details": "Terminal commands restricted to allowlist",
+      "error": null
+    },
+    {
+      "name": "security_sandbox",
+      "category": "security",
+      "passed": true,
+      "duration_ms": 0.0,
+      "details": "Python execution restricted to safe builtins",
+      "error": null
+    },
+    {
+      "name": "security_memory_separation",
+      "category": "security",
+      "passed": true,
+      "duration_ms": 0.0,
+      "details": "Memory separates facts, inferences, and sources",
+      "error": null
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
+    "rate": 1.0,
+    "by_category": {
+      "integration": {
+        "total": 4,
+        "passed": 4
+      },
+      "language": {
+        "total": 1,
+        "passed": 1
+      },
+      "security": {
+        "total": 3,
+        "passed": 3
+      }
+    }
+  },
+  "errors": [],
+  "improvements": [
+    "pytest_suite",
+    "real_python_math",
+    "real_terminal_echo",
+    "real_coordinator_task",
+    "arabic_support",
+    "security_tool_allowlist",
+    "security_sandbox",
+    "security_memory_separation"
+  ],
+  "resource_usage": {
+    "total_duration_ms": 0.0
+  },
+  "comparison_to_previous": null
+}
