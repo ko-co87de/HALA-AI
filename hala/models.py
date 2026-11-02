@@ -22,16 +22,22 @@ def _which(name: str) -> Optional[str]:
 
 
 def _resolve_path(path: str) -> str:
-    """Resolve a model path. Tries absolute, CWD-relative, and HALA_DATA."""
+    """Resolve a model path. Tries absolute, CWD-relative, package-relative,
+    and HALA_DATA env var. Returns the first existing path."""
+    if not path:
+        return path
     p = Path(path)
     if p.is_absolute() and p.exists():
         return str(p)
+    # Search order: CWD, package dir, HALA_DATA, original
+    pkg_dir = Path(__file__).resolve().parent.parent
     candidates = [
         Path.cwd() / path,
-        Path(os.environ.get("HALA_DATA", "")) / path,
+        pkg_dir / path,
+        Path(os.environ.get("HALA_DATA", "")) / path if os.environ.get("HALA_DATA") else None,
     ]
     for c in candidates:
-        if c.exists():
+        if c and c.exists():
             return str(c)
     # Return CWD-relative path; adapter will report a clear error
     return str(Path.cwd() / path)
